@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>TikTok</title>
+    <style>
+        /* إعادة تعيين الهوامش وجعل الجسم يغطي الشاشة بالكامل */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000; /* خلفية سوداء بالكامل */
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-shadow: 1px 1px 3px #000000;
+        }
+
+        /* قماش الرسم الخاص بالمطر - يغطي الخلفية خلف الصندوق */
+        #rainCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none; /* يسمح بالتفاعل مع العناصر التي فوقه */
+        }
+
+        /* صندوق الـ IP - في الطبقة العليا (فوق المطر) */
+        .ip-box {
+            position: relative;
+            z-index: 10;
+            background: #000000;
+            padding: 40px 60px;
+            border-radius: 30px;
+            border: 3px solid #ff0000;
+            box-shadow: 0 0 40px #ff0000, 0 0 80px #ff0000, 0 0 120px #ff0000;
+            transition: box-shadow 0.3s ease;
+            text-align: center;
+        }
+
+        .ip-box:hover {
+            box-shadow: 0 0 60px #ff3333, 0 0 120px #ff3333, 0 0 180px #ff3333;
+        }
+
+        h2 {
+            color: #ff1a1a;
+            font-size: 28px;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 40px #ff0000;
+            margin: 0 0 10px 0;
+        }
+
+        #ip-display {
+            color: #ff0000;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 80px #ff0000;
+            animation: pulse 1.5s infinite alternate;
+            margin: 0;
+        }
+
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 40px #ff0000; }
+            100% { text-shadow: 0 0 20px #ff3333, 0 0 40px #ff3333, 0 0 80px #ff3333, 0 0 120px #ff3333; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- قماش الرسم للمطر -->
+    <canvas id="rainCanvas"></canvas>
+
+    <!-- صندوق الـ IP -->
+    <div class="ip-box">
+        <h2>𝓨𝓞𝓤𝓡 𝓘𝓟 𝓐𝓓𝓓𝓡𝓔𝓢</h2>
+        <p id="ip-display">جاري الحصول...</p>
+    </div>
+
+    <script>
+        // --- جزء جلب الـ IP (نفس الكود السابق) ---
+        async function getIP() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                document.getElementById('ip-display').textContent = data.ip;
+            } catch {
+                document.getElementById('ip-display').textContent = 'خطأ في الجلب';
+            }
+        }
+        window.onload = getIP;
+
+        // --- جزء تأثير المطر الأحمر المتوهج (باستخدام Canvas) ---
+        const canvas = document.getElementById('rainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ضبط أبعاد القماش لتغطية الشاشة بالكامل
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // عدد قطرات المطر (كلما زاد العدد زادت الكثافة)
+        const numberOfDrops = 200;
+        const drops = [];
+
+        // إنشاء كل قطرة مطر بخصائص عشوائية
+        for (let i = 0; i < numberOfDrops; i++) {
+            drops.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                length: Math.random() * 15 + 10,   // طول القطرة بين 10 و 25 بكسل
+                speed: Math.random() * 8 + 4,       // سرعة السقوط بين 4 و 12
+                opacity: Math.random() * 0.6 + 0.4  // شفافية بين 0.4 و 1.0
+            });
+        }
+
+        // دالة الرسم الرئيسية (تتكرر باستمرار)
+        function drawRain() {
+            // 1. مسح القماش بلون أسود شفاف لإنشاء أثر تلاشي (تأثير وميض خفيف)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. ضبط لون المطر (أحمر متوهج)
+            ctx.strokeStyle = '#ff0000';
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 15;  // توهج قوي للقطرات
+
+            // 3. رسم كل قطرة
+            for (let i = 0; i < drops.length; i++) {
+                const drop = drops[i];
+
+                // بداية الخط (من الأعلى)
+                ctx.beginPath();
+                ctx.moveTo(drop.x, drop.y);
+                // نهاية الخط (من الأسفل) - طول القطرة
+                ctx.lineTo(drop.x, drop.y + drop.length);
+
+                // ضبط الشفافية الفردية للقطرة
+                ctx.globalAlpha = drop.opacity;
+                ctx.lineWidth = 2;  // سمك الخط
+                ctx.stroke();
+
+                // تحريك القطرة للأسفل حسب السرعة
+                drop.y += drop.speed;
+
+                // إذا خرجت القطرة من الشاشة من الأسفل، أعدها إلى الأعلى بشكل عشوائي
+                if (drop.y > canvas.height) {
+                    drop.y = -drop.length * 2;
+                    drop.x = Math.random() * canvas.width;
+                }
+            }
+
+            // إعادة استدعاء الدالة لإنشاء حركة مستمرة (60 إطار في الثانية)
+            requestAnimationFrame(drawRain);
+        }
+
+        // بدء تشغيل المطر
+        drawRain();
+
+        // تحديث أبعاد القماش إذا تغير حجم النافذة
+        window.addEventListener('resize', function() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // إعادة توزيع القطرات لتتناسب مع الحجم الجديد
+            for (let i = 0; i < drops.length; i++) {
+                drops[i].x = Math.random() * canvas.width;
+                drops[i].y = Math.random() * canvas.height;
+            }
+        });
+    </script>
+</body>
+</html>
